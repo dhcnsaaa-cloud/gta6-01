@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halcyon Bay — An Open-World Crime Game</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #f2a95c; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* ---------- HUD ---------- */
+  #hud { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 5; color: #fff; }
+  .hud-box { background: rgba(10, 20, 30, 0.62); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 8px 12px; backdrop-filter: blur(2px); }
+  #hud-topleft { position: absolute; top: 12px; left: 12px; min-width: 240px; }
+  #hud-money { font-size: 26px; font-weight: 800; color: #7dff9a; text-shadow: 0 2px 4px rgba(0,0,0,0.6); }
+  #hud-stars { font-size: 22px; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.7); }
+  #hud-healthbar-wrap { height: 10px; background: rgba(0,0,0,0.55); border-radius: 5px; overflow: hidden; margin-top: 4px; }
+  #hud-healthbar { height: 100%; width: 100%; background: #4ade80; }
+  #hud-health { font-size: 12px; opacity: 0.9; }
+  #hud-weapon { font-size: 13px; font-weight: 700; color: #ffd700; margin-top: 4px; }
+  #hud-vehicle { font-size: 17px; font-weight: 800; color: #ffd700; margin-top: 6px; text-shadow: 0 2px 4px rgba(0,0,0,0.6); }
+  #hud-heat { font-size: 12px; font-weight: 700; color: #ff7a5c; margin-top: 2px; }
+  #hud-day { position: absolute; top: 12px; right: 244px; font-size: 15px; font-weight: 800; letter-spacing: 1px; color: #ffd700; text-shadow: 0 2px 4px rgba(0,0,0,0.7); }
+  #hud-rep { position: absolute; top: 56px; right: 244px; font-size: 12px; font-weight: 800; letter-spacing: 1px; color: #ffd700; text-shadow: 0 2px 4px rgba(0,0,0,0.7); padding: 5px 10px; white-space: nowrap; }
+  #hud-mission { position: absolute; top: 86px; left: 50%; transform: translateX(-50%); font-size: 21px; font-weight: 900; letter-spacing: 1px; color: #ffd700; background: rgba(10,20,30,0.62); border: 1px solid rgba(255,215,0,0.45); border-radius: 10px; padding: 7px 16px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); white-space: nowrap; }
+  #hud-next { position: absolute; top: 140px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; letter-spacing: 1px; color: rgba(255,255,255,0.92); background: rgba(10,20,30,0.55); border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; padding: 4px 12px; white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+  #hud-units { position: absolute; top: 182px; right: 12px; width: 240px; box-sizing: border-box; font-size: 11px; line-height: 1.55; padding: 6px 10px; }
+  #hud-units .units-head { font-weight: 800; letter-spacing: 1px; color: #7db8ff; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 3px; margin-bottom: 3px; }
+  #hud-units .units-row { display: flex; gap: 6px; white-space: nowrap; }
+  #hud-units .units-row span:first-child { font-weight: 800; }
+  #hud-units .units-off { opacity: 0.75; }
+  #hud-units .units-row span:nth-child(3) { margin-left: auto; font-weight: 700; color: #ffd700; }
+  #hud-units .units-st { color: #ff8a7a; font-weight: 700; }
+  #hud-ticker { position: absolute; bottom: 96px; left: 50%; transform: translateX(-50%); font-size: 13px; font-style: italic; background: rgba(10,20,30,0.7); padding: 6px 14px; border-radius: 8px; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+  #hud-objective { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-size: 15px; font-weight: 700; text-align: center; max-width: 46vw; text-shadow: 0 2px 4px rgba(0,0,0,0.7); }
+  #hud-district { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); font-size: 12px; letter-spacing: 3px; opacity: 0.85; text-shadow: 0 2px 4px rgba(0,0,0,0.7); }
+  #hud-minimap-wrap { position: absolute; top: 12px; right: 12px; }
+  #minimap { width: 220px; height: 158px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.5); background: rgba(10,20,30,0.6); }
+  #hud-speed { position: absolute; right: 16px; bottom: 56px; font-size: 30px; font-weight: 800; text-shadow: 0 2px 6px rgba(0,0,0,0.8); }
+  #hud-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); font-size: 13px; background: rgba(10,20,30,0.6); padding: 6px 14px; border-radius: 20px; white-space: nowrap; }
+  #hud-toast { position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%); font-size: 15px; font-weight: 600; background: rgba(10,20,30,0.75); padding: 8px 16px; border-radius: 8px; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
+  #hud-banner { position: absolute; top: 22%; left: 50%; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity 0.4s; pointer-events: none; }
+  .banner-title { font-size: 44px; font-weight: 900; letter-spacing: 4px; color: #ffd700; text-shadow: 0 3px 0 #b45309, 0 6px 18px rgba(0,0,0,0.7); }
+  .banner-sub { font-size: 16px; max-width: 560px; margin: 8px auto 0; text-shadow: 0 2px 6px rgba(0,0,0,0.8); }
+
+  /* ---------- Screens ---------- */
+  .screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 10; }
+  #title-screen { background: linear-gradient(160deg, #ff9a3d 0%, #f26d4d 35%, #7a2d5e 70%, #1d2a4a 100%); }
+  .title-card { text-align: center; color: #fff; max-width: 720px; padding: 24px; }
+  .title-kicker { letter-spacing: 6px; font-size: 14px; opacity: 0.9; }
+  h1.title { font-size: 84px; margin: 6px 0 0; font-weight: 900; letter-spacing: 2px; text-shadow: 0 4px 0 rgba(0,0,0,0.25), 0 12px 40px rgba(0,0,0,0.5); line-height: 0.95; }
+  h1.title span { color: #ffd700; }
+  .title-tag { font-size: 18px; margin-top: 10px; opacity: 0.95; }
+  .title-story { font-size: 15px; line-height: 1.55; background: rgba(0,0,0,0.35); border-radius: 12px; padding: 12px 18px; margin: 18px 0; }
+  .btn { pointer-events: auto; cursor: pointer; border: none; border-radius: 10px; padding: 14px 34px; font-size: 18px; font-weight: 800; color: #1d1206; background: #ffd700; box-shadow: 0 4px 0 #b45309; margin: 4px; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.ghost { background: rgba(255,255,255,0.16); color: #fff; box-shadow: none; border: 1px solid rgba(255,255,255,0.5); }
+  #save-line { margin-top: 14px; font-size: 13px; opacity: 0.9; }
+  #controls-list { margin-top: 16px; font-size: 13px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; text-align: left; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 12px 16px; }
+  #controls-list b { color: #ffd700; }
+  #pause-screen, #end-screen { display: none; background: rgba(8, 12, 24, 0.72); color: #fff; text-align: center; }
+  .panel { background: rgba(10,20,30,0.85); border: 1px solid rgba(255,255,255,0.25); border-radius: 14px; padding: 28px 40px; max-width: 560px; }
+  .panel h2 { font-size: 40px; margin: 0 0 8px; letter-spacing: 3px; }
+  #end-title.wasted { color: #ef4444; } #end-title.busted { color: #60a5fa; }
+  .panel p { font-size: 15px; line-height: 1.6; opacity: 0.95; }
+  #wanted-poster, #pause-wanted-poster { margin: 10px 0 4px; font-size: 13px; color: #ffd700; font-weight: 700; letter-spacing: 1px; }
+  #memory-line { font-size: 13px; font-style: italic; opacity: 0.9; }
+
+  /* ---------- Garage + sleep overlays ---------- */
+  .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 20; background: rgba(8,12,24,0.66); }
+  .garage-panel { background: rgba(12,22,34,0.96); border: 2px solid #ffd700; border-radius: 16px; padding: 24px 28px; max-width: 620px; width: 92vw; color: #fff; pointer-events: auto; }
+  .garage-panel h2 { margin: 0 0 4px; font-size: 30px; letter-spacing: 2px; color: #ffd700; }
+  .garage-panel .sub { font-size: 13px; opacity: 0.85; margin-bottom: 14px; }
+  .garage-cars { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .garage-car { border: 1px solid rgba(255,255,255,0.35); border-radius: 10px; padding: 10px 12px; min-width: 150px; cursor: pointer; background: rgba(255,255,255,0.06); }
+  .garage-car.active { border-color: #ffd700; background: rgba(255,215,0,0.14); }
+  .garage-car .nm { font-weight: 800; font-size: 15px; }
+  .garage-car .meta { font-size: 12px; opacity: 0.85; margin-top: 3px; }
+  .garage-upgrades { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .upg { border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; padding: 10px; text-align: center; }
+  .upg .nm { font-weight: 800; font-size: 14px; }
+  .upg .lv { font-size: 12px; color: #ffd700; margin: 4px 0; }
+  .upg button { margin-top: 4px; padding: 7px 12px; font-size: 13px; }
+  .garage-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .garage-actions .btn { padding: 10px 18px; font-size: 15px; }
+  #day-card { text-align: center; color: #fff; }
+  #day-card h2 { font-size: 64px; margin: 0; letter-spacing: 6px; color: #ffd700; text-shadow: 0 4px 0 rgba(0,0,0,0.3); }
+  #day-card p { font-size: 17px; max-width: 480px; margin: 10px auto 0; line-height: 1.5; }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Halcyon Bay: an open-world crime game. Walk and drive around a coastal city, steal cars, run missions, and dodge the police."></canvas>
+<p id="status" role="status" aria-live="polite"></p>
+
+<div id="hud">
+  <div id="hud-topleft" class="hud-box">
+    <div id="hud-money">$120</div>
+    <div id="hud-stars">☆☆☆☆☆</div>
+    <div id="hud-healthbar-wrap"><div id="hud-healthbar"></div></div>
+    <div id="hud-health">100 HP</div>
+    <div id="hud-vehicle">ON FOOT</div>
+    <div id="hud-heat"></div>
+    <div id="hud-weapon">FISTS</div>
+  </div>
+  <div id="hud-day" class="hud-box">DAY 1 · 08:00</div>
+  <div id="hud-rep" class="hud-box">REP · NOBODY · 0/12 JOBS</div>
+  <div id="hud-mission">MISSION 1/12 — FIRST FARE · Mara Solis</div>
+  <div id="hud-next" style="display:none"></div>
+  <div id="hud-objective" class="hud-box">◉ Meet Mara at the Old Town plaza</div>
+  <div id="hud-district">OLD TOWN</div>
+  <div id="hud-minimap-wrap"><canvas id="minimap" width="220" height="158"></canvas></div>
+  <div id="hud-units" class="hud-box" style="display:none"></div>
+  <div id="hud-speed"></div>
+  <div id="hud-ticker"></div>
+  <div id="hud-toast"></div>
+  <div id="hud-banner"><div class="banner-title"></div><div class="banner-sub"></div></div>
+  <div id="hud-hint"></div>
+</div>
+
+<div id="garage-overlay" class="overlay">
+  <div class="garage-panel">
+    <h2>🚗 RICO'S GARAGE</h2>
+    <div class="sub">Your cars, your rules. Store stolen rides, switch cars, buy upgrades — the money sink that keeps the Bay moving.</div>
+    <div class="sub" id="garage-money"></div>
+    <div class="garage-cars" id="garage-cars"></div>
+    <div class="garage-upgrades" id="garage-upgrades"></div>
+    <div class="garage-actions">
+      <button class="btn" id="btn-garage-store">Store current car</button>
+      <button class="btn ghost" id="btn-garage-close">Close (B)</button>
+    </div>
+  </div>
+</div>
+
+<div id="day-overlay" class="overlay">
+  <div id="day-card">
+    <h2 id="day-card-title">DAY 2</h2>
+    <p id="day-card-sub"></p>
+  </div>
+</div>
+
+<div id="title-screen" class="screen">
+  <div class="title-card">
+    <div class="title-kicker">AN OPEN-WORLD CRIME GAME</div>
+    <h1 class="title">HALCYON<br><span>BAY</span></h1>
+    <div class="title-tag">Sun, surf, and one wheelman with a debt to pay.</div>
+    <div class="title-story">Rico Vega rolls into Halcyon Bay with $120, a borrowed jacket and a debt to Old Sal.
+      <b>12 missions across 3 days</b> — steal cars, run jobs for Mara Solis, dodge the Halcyon PD
+      (and its helicopter at 3 stars), build your collection at <b>Rico's Garage</b>, and climb from
+      small-time driver to King of Halcyon. Districts remember your heat. <b>The city remembers.</b></div>
+    <div id="wanted-poster" style="color:#ffd700"></div>
+    <button class="btn" id="btn-start">▶ &nbsp;START THE ENGINE</button>
+    <button class="btn ghost" id="btn-new">New game</button>
+    <div id="save-line"></div>
+    <div id="controls-list"></div>
+  </div>
+</div>
+
+<div id="pause-screen" class="screen">
+  <div class="panel">
+    <h2>PAUSED</h2>
+    <p>Halcyon Bay waits for no one — except right now. Progress saves automatically.</p>
+    <div id="pause-wanted-poster">WANTED: RICO VEGA — NOBODY</div>
+    <div id="memory-line"></div>
+    <button class="btn" id="btn-resume">Resume</button>
+    <button class="btn ghost" id="btn-quit-title">Quit to title</button>
+  </div>
+</div>
+
+<div id="end-screen" class="screen">
+  <div class="panel">
+    <h2 id="end-title">BUSTED</h2>
+    <p id="end-sub"></p>
+    <button class="btn" id="btn-continue">Back to the streets (Enter)</button>
+  </div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
